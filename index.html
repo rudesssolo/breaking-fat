@@ -873,7 +873,7 @@ const MOV={
 /* =============================== STATO =============================== */
 const PKEY='pft_stato_v1';
 const APP_VERSION=2; // versione formato stato/backup: unica fonte di verità
-const BUILD='261004'; // data di build dell'app (YYMMDD)
+const BUILD='261004.2'; // build dell'app: YYMMDD.revisione — aumenta la revisione a OGNI pubblicazione (più deploy nello stesso giorno)
 const KCAL_BASE=1275; // riferimento del programma (1.250-1.300)
 const DEF=()=>({
   v:APP_VERSION,
@@ -2298,6 +2298,8 @@ function openSettings(){
     <h3 style="font-size:14px">📱 Aggiungi alla schermata Home</h3>
     <p class="tiny muted"><b>iPhone (Safari):</b> Condividi ⇧ → «Aggiungi a Home».<br><b>Android (Chrome):</b> menu ⋮ → «Aggiungi a schermata Home». Nota: la voce compare solo se l'app è aperta da un indirizzo <b>http/https</b> (per esempio un server locale o un hosting); aprendo il file HTML direttamente dal telefono la voce non esiste.<br>L'app funziona poi a tutto schermo, senza barre del browser.</p>
     <hr class="th">
+    <button class="btn subtle" data-act="updCheck" style="width:100%">🔄 Verifica aggiornamenti ora</button>
+    <hr class="th">
     <button class="btn danger" data-act="reset">⚠️ Azzera tutti i dati</button>
     <p class="tiny muted" style="margin-top:10px;text-align:center">🔥 Breaking Fat</p>
     <p class="tiny muted" style="text-align:center">build ${BUILD} · Marco Flavio Gemello</p>
@@ -2737,6 +2739,7 @@ document.addEventListener('click',e=>{
     /* aggiornamento app */
     case 'updNow':{try{localStorage.removeItem(UPD_SKIP_KEY);}catch(e){} location.reload(); break;}
     case 'updSkip':{try{localStorage.setItem(UPD_SKIP_KEY,UPD_REMOTE||'');}catch(e){} closeOverlay(); break;}
+    case 'updCheck':checkUpdate(true);break;
     case 'goPasti':setTab('cucina');break;
     case 'infoOk':S.infoOk=true;save();render();break;
 
@@ -3003,22 +3006,29 @@ document.addEventListener('keydown',e=>{
 /* ---------- controllo nuove versioni ---------- */
 const UPD_SKIP_KEY='pft_upd_skip_v1';
 let UPD_REMOTE=null;
-async function checkUpdate(){
+/* confronto build YYMMDD.revisione: vero solo se remota > locale */
+function buildGt(a,b){
+  const pa=String(a).split('.'), pb=String(b).split('.');
+  return +pa[0]>+pb[0]||(+pa[0]===+pb[0]&&+(pa[1]||0)>+(pb[1]||0));
+}
+async function checkUpdate(manual){
   try{
     if(location.protocol!=='http:'&&location.protocol!=='https:')return;
-    /* throttle: il self-check scarica l'HTML intero, non ripeterlo entro 6h */
-    const lastChk=+localStorage.getItem('pft_upd_check')||0;
-    if(Date.now()-lastChk<6*3600e3)return;
-    if($('#overlayRoot').firstChild)return; // non sovrapporre ad altri sheet
+    /* throttle: il self-check scarica l'HTML intero, non ripeterlo entro 6h (skip se invocato manualmente) */
+    if(!manual){
+      const lastChk=+localStorage.getItem('pft_upd_check')||0;
+      if(Date.now()-lastChk<6*3600e3)return;
+    }
+    if(!manual&&$('#overlayRoot').firstChild)return; // non sovrapporre ad altri sheet (manuale: sostituisce le impostazioni)
     const base=location.href.split('#')[0].split('?')[0];
     const r=await fetch(base+'?nc='+Date.now(),{cache:'no-store'});
     try{localStorage.setItem('pft_upd_check',String(Date.now()));}catch(eCk){}
-    if(!r.ok)return;
-    const m=(await r.text()).match(/const\s+BUILD\s*=\s*['"](\d{4,8})['"]/);
-    if(!m)return;
-    if(!(Number(m[1])>Number(BUILD)))return;
-    if(localStorage.getItem(UPD_SKIP_KEY)===m[1])return; // già rifiutata per questa build
-    if($('#overlayRoot').firstChild)return; // ricontrollo dopo l'await: non sovrapporre a sheet/timer/form aperti nel frattempo
+    if(!r.ok){if(manual)toast('⚠️ Verifica non riuscita: riprova');return;}
+    const m=(await r.text()).match(/const\s+BUILD\s*=\s*['"](\d{6}(?:\.\d+)?)['"]/);
+    if(!m){if(manual)toast('⚠️ Versione remota non leggibile');return;}
+    if(!buildGt(m[1],BUILD)){if(manual)toast('✅ Hai già l\'ultima versione (build '+BUILD+')');return;}
+    if(localStorage.getItem(UPD_SKIP_KEY)===m[1]){if(manual)toast('ℹ️ Novità della build '+m[1]+' rifiutata: sarò silenzioso finché non esce una più recente');return;}
+    if(!manual&&$('#overlayRoot').firstChild)return; // ricontrollo dopo l'await: non sovrapporre a sheet/timer/form aperti nel frattempo
     UPD_REMOTE=m[1];
     openSheet(`
       <h3>🔄 Nuova versione disponibile</h3>
@@ -3028,7 +3038,7 @@ async function checkUpdate(){
         <button class="btn subtle" data-act="updSkip">Più tardi</button>
       </div>
     `);
-  }catch(e){}
+  }catch(e){if(manual)toast('⚠️ Verifica non riuscita: sei offline?');}
 }
 
 /* ============================ INIT ============================ */

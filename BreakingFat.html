@@ -2615,6 +2615,9 @@ document.addEventListener('click',e=>{
     case 'settings':openSettings();break;
     case 'backdrop':if(e.target.classList.contains('overlay'))closeOverlay();break;
     case 'close':closeOverlay();break;
+    /* aggiornamento app */
+    case 'updNow':{try{localStorage.removeItem(UPD_SKIP_KEY);}catch(e){} location.reload(); break;}
+    case 'updSkip':{try{localStorage.setItem(UPD_SKIP_KEY,UPD_REMOTE||'');}catch(e){} closeOverlay(); break;}
     case 'goPasti':setTab('cucina');break;
     case 'infoOk':S.infoOk=true;save();render();break;
 
@@ -2836,6 +2839,32 @@ document.addEventListener('keydown',e=>{
   closeOverlay();
 });
 
+/* ---------- controllo nuove versioni ---------- */
+const UPD_SKIP_KEY='pft_upd_skip_v1';
+let UPD_REMOTE=null;
+async function checkUpdate(){
+  try{
+    if(location.protocol!=='http:'&&location.protocol!=='https:')return;
+    if($('#overlayRoot').firstChild)return; // non sovrapporre ad altri sheet
+    const base=location.href.split('#')[0].split('?')[0];
+    const r=await fetch(base+'?nc='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const m=(await r.text()).match(/const BUILD='(\d{6})'/);
+    if(!m)return;
+    if(!(Number(m[1])>Number(BUILD)))return;
+    if(localStorage.getItem(UPD_SKIP_KEY)===m[1])return; // già rifiutata per questa build
+    UPD_REMOTE=m[1];
+    openSheet(`
+      <h3>🔄 Nuova versione disponibile</h3>
+      <p class="small" style="margin:8px 0">È online la <b>build ${m[1]}</b> (qui hai la ${BUILD}).<br>Aggiorna per avere le ultime novità e correzioni.</p>
+      <div class="btnrow">
+        <button class="btn" data-act="updNow">🔄 Aggiorna ora</button>
+        <button class="btn subtle" data-act="updSkip">Più tardi</button>
+      </div>
+    `);
+  }catch(e){}
+}
+
 /* ============================ INIT ============================ */
 /* Manifest PWA generato a runtime: rende "Aggiungi a schermata Home" disponibile
    su Chrome Android quando l'app è servita via http/https (su file locale la voce
@@ -2866,6 +2895,7 @@ document.addEventListener('keydown',e=>{
 applyTheme();
 render();
 if(!S.profilo&&!S.obDone)openOnboarding();
+setTimeout(checkUpdate,2500); // check nuove versioni a avvio
 </script>
 </body>
 </html>

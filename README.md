@@ -17,7 +17,7 @@ python -m http.server 8137
 # poi apri http://127.0.0.1:8137/index.html
 ```
 
-Il file sorgente di lavoro è `BreakingFat.html`; per pubblicare una nuova versione copialo su `index.html`, commit e push.
+Il file sorgente di lavoro è `BreakingFat.html` (locale, non pubblicato); per pubblicare una nuova versione copialo su `index.html`, commit e push. Nel repo è servito **solo `index.html`**: è l'unica URL canonica (usata anche da manifest e service worker).
 
 ## 📦 Pubblicazione (GitHub Pages)
 

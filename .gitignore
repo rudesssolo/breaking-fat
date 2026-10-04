@@ -1,0 +1,4 @@
+# backup locali e cartelle di lavoro
+BreakingFat.backup-*.html
+.video_agent/
+__pycache__/

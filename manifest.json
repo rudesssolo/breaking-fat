@@ -1,0 +1,16 @@
+{
+  "name": "Breaking Fat — Meal Prep & Movimento",
+  "short_name": "Breaking Fat",
+  "description": "Piano pasti settimanale, spesa, sessioni batch e movimento. I tuoi dati restano solo sul dispositivo.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f5f1",
+  "theme_color": "#14532d",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

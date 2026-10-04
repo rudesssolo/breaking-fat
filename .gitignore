@@ -2,3 +2,8 @@
 BreakingFat.backup-*.html
 .video_agent/
 __pycache__/
+
+# artefatti di lavoro icone
+preview*.html
+candidate-*.png
+test-old.html

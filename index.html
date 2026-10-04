@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Breaking Fat">
 <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
 <title>Breaking Fat — Meal Prep & Movimento</title>
 <style>
 :root{
@@ -382,6 +383,29 @@ function dateOfWeekDay(k){
 }
 const fmtDateIT=d=>d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
 function toast(msg){const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+/* toast con azione di annullamento (finestra ~6s) */
+function toastUndo(msg,fn){
+  const t=$('#toast');
+  t.innerHTML=`${esc(msg)}<button class="btn small ghost asbtn" data-act="undo" style="margin-left:10px;min-height:28px;padding:2px 12px">Annulla</button>`;
+  t.classList.add('show'); clearTimeout(t._h);
+  window._undoFn=fn;
+  t._h=setTimeout(()=>{t.classList.remove('show'); window._undoFn=null;},6000);
+}
+/* ---------- promemoria backup ---------- */
+const BKP_LAST='pft_last_backup', BKP_SNOOZE='pft_backup_snooze';
+function backupDue(){
+  try{
+    const last=+localStorage.getItem(BKP_LAST)||0, sn=+localStorage.getItem(BKP_SNOOZE)||0;
+    if(Date.now()-sn<7*864e5)return false;
+    return !last||Date.now()-last>7*864e5;
+  }catch(e){return false;}
+}
+function backupAgeTxt(){
+  const last=+localStorage.getItem(BKP_LAST)||0;
+  if(!last)return 'mai esportato';
+  const d=Math.floor((Date.now()-last)/864e5);
+  return d<=0?'oggi':d===1?'ieri':d+' giorni fa';
+}
 const uid=()=>'p'+Math.random().toString(36).slice(2,9);
 
 /* =============================== DATI =============================== */
@@ -1250,6 +1274,15 @@ function renderOggi(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${pastoCard(k,'pranzo')}${pastoCard(k,'cena')}</div>`;
 
   return `
+  ${backupDue()?`
+  <div class="card" style="border-color:var(--warn)">
+    <h2>🛡️ Backup dei dati</h2>
+    <p class="small">I tuoi dati vivono solo su questo dispositivo (ultimo backup: <b>${backupAgeTxt()}</b>). Esporta una copia per non rischiare di perdere piano, ricette e progressi.</p>
+    <div class="btnrow">
+      <button class="btn" data-act="expBackup">📤 Esporta backup</button>
+      <button class="btn subtle" data-act="backupSnooze">Ricordamelo tra una settimana</button>
+    </div>
+  </div>`:''}
   <div class="card" style="background:linear-gradient(135deg,var(--soft),var(--card));">
     <h2>${S.profilo&&S.profilo.nome?'👋 Ciao '+esc(S.profilo.nome):'👋 '+fmtDateIT(t)}</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2524,6 +2557,8 @@ function doExportBackup(){
   a.download='breaking-fat-backup-'+todayISO()+'.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  try{localStorage.setItem(BKP_LAST,String(Date.now()));}catch(e){}
+  render();
   toast('💾 Backup esportato');
 }
 function doImportBackup(file){
@@ -2549,6 +2584,7 @@ function doImportBackup(file){
         doExportBackup();
         S=nuovo; resetIngMeta(); applyIngMeta(nuovo.ingMeta);
         save(); applyTheme(); closeOverlay(); render();
+        try{localStorage.setItem(BKP_LAST,String(Date.now()));}catch(e){}
         toast('✅ Backup importato');
       });
     }catch(e){
@@ -2660,10 +2696,17 @@ document.addEventListener('click',e=>{
       break;
     }
     case 'exportSpesa':doExportSpesa();break;
-    case 'nuovaSett':
-      confirmSheet('Azzerare tutte le spunte della spesa e della sessione batch?',()=>{
-        S.spesa={};S.steps={};save();render();toast('🔄 Spunte azzerate');
-      });break;
+    case 'nuovaSett':{
+      const snap=JSON.parse(JSON.stringify({sp:S.spesa,st:S.steps}));
+      S.spesa={};S.steps={};save();render();
+      toastUndo('🔄 Spunte azzerate',()=>{S.spesa=snap.sp;S.steps=snap.st;save();render();toast('↩︎ Spunte ripristinate');});
+      break;}
+    case 'undo':{
+      const f=window._undoFn; window._undoFn=null;
+      clearTimeout($('#toast')._h); $('#toast').classList.remove('show');
+      if(f)f();
+      break;}
+    case 'backupSnooze':{try{localStorage.setItem(BKP_SNOOZE,String(Date.now()));}catch(e){} render();break;}
 
     /* step sessione */
     case 'step':{
@@ -2680,22 +2723,25 @@ document.addEventListener('click',e=>{
     }
     case 'pickSearch':break;
     case 'genera':doGenera();break;
-    case 'ripristina':
-      confirmSheet('Ripristinare il piano originale?',()=>{
-        S.piano=JSON.parse(JSON.stringify(PIANO_DEFAULT));save();render();toast('↩︎ Piano originale ripristinato');
-      });break;
+    case 'ripristina':{
+      const snap=JSON.parse(JSON.stringify(S.piano));
+      S.piano=JSON.parse(JSON.stringify(PIANO_DEFAULT));save();render();
+      toastUndo('↩︎ Piano originale ripristinato',()=>{S.piano=snap;save();render();toast('↩︎ Piano personalizzato ripristinato');});
+      break;}
 
     /* ricettario */
     case 'openRic':openRic(a.id);break;
     case 'newRic':openRicForm(null);break;
     case 'editRic':openRicForm(a.id);break;
-    case 'delRic':
-      confirmSheet('Eliminare questa ricetta personale? Le porzioni assegnate nel piano torneranno al piano standard e la spesa si aggiornerà.',()=>{
-        S.ricettePers=S.ricettePers.filter(r=>r.id!==a.id);
-        Object.keys(S.steps).forEach(k=>{if(k.indexOf(a.id+':')===0)delete S.steps[k];});
-        DAYS.forEach(d=>['pranzo','cena'].forEach(m=>{if(S.piano[d][m]===a.id)S.piano[d][m]=PIANO_DEFAULT[d][m];}));
-        save();closeOverlay();render();toast('🗑 Ricetta eliminata');
-      });break;
+    case 'delRic':{
+      const nome=(byId(a.id)||{}).titolo||'Ricetta';
+      const snap=JSON.parse(JSON.stringify({rp:S.ricettePers,pl:S.piano,st:S.steps,im:S.ingMeta}));
+      S.ricettePers=S.ricettePers.filter(r=>r.id!==a.id);
+      Object.keys(S.steps).forEach(k=>{if(k.indexOf(a.id+':')===0)delete S.steps[k];});
+      DAYS.forEach(d=>['pranzo','cena'].forEach(m=>{if(S.piano[d][m]===a.id)S.piano[d][m]=PIANO_DEFAULT[d][m];}));
+      save();closeOverlay();render();
+      toastUndo('🗑 '+esc(nome)+' eliminata',()=>{S.ricettePers=snap.rp;S.piano=snap.pl;S.steps=snap.st;S.ingMeta=snap.im;save();render();toast('↩︎ Ricetta ripristinata');});
+      break;}
     case 'addIng':{
       const box=$('#fIng');
       const ix=box.children.length;
@@ -2770,8 +2816,10 @@ document.addEventListener('click',e=>{
     case 'expBackup':doExportBackup();break;
     case 'impBackup':$('#fileBackup').click();break;
     case 'reset':
-      confirmSheet('Azzerare TUTTI i dati (piano, ricette personali, spunte, cronologia)? Operazione non reversibile.',()=>{
-        localStorage.removeItem(PKEY);S=DEF();resetIngMeta();save();applyTheme();closeOverlay();render();toast('Dati azzerati');
+      confirmSheet('Azzerare TUTTI i dati (piano, ricette personali, spunte, cronologia)? Potrai annullare per pochi secondi.',()=>{
+        const snap={s:JSON.parse(JSON.stringify(S)),im:JSON.parse(JSON.stringify(ING_META))};
+        localStorage.removeItem(PKEY);S=DEF();resetIngMeta();save();applyTheme();closeOverlay();render();
+        toastUndo('🗑 Dati azzerati',()=>{S=snap.s;ING_META=snap.im;save();applyTheme();render();toast('↩︎ Dati ripristinati');});
       });break;
     case 'confOk':{const cb=window._confCb;window._confCb=null;closeOverlay();cb&&cb();break;}
     case 'passiPlus':{
@@ -2866,32 +2914,11 @@ async function checkUpdate(){
 }
 
 /* ============================ INIT ============================ */
-/* Manifest PWA generato a runtime: rende "Aggiungi a schermata Home" disponibile
-   su Chrome Android quando l'app è servita via http/https (su file locale la voce
-   non esiste). Icona disegnata su canvas: nessun file esterno. */
-(function buildManifest(){
-  try{
-    if(location.protocol!=='http:'&&location.protocol!=='https:')return;
-    const c=document.createElement('canvas'); c.width=c.height=512;
-    const x=c.getContext('2d'); if(!x)return;
-    x.fillStyle='#2e7d32'; x.fillRect(0,0,512,512);
-    x.font='300px serif'; x.textAlign='center'; x.textBaseline='middle';
-    x.fillStyle='#fff'; x.fillText('🔥',256,276);
-    const icon=c.toDataURL('image/png');
-    const dir=location.href.slice(0,location.href.lastIndexOf('/')+1);
-    const man={
-      name:'Breaking Fat — Meal Prep & Movimento', short_name:'Breaking Fat',
-      description:'Piano pasti settimanale, spesa, sessioni batch e movimento.',
-      start_url:location.href.split('#')[0], scope:dir,
-      display:'standalone', orientation:'portrait',
-      background_color:'#f2f5f1', theme_color:'#f4f6f3',
-      icons:[{src:icon,sizes:'512x512',type:'image/png',purpose:'any'},{src:icon,sizes:'192x192',type:'image/png',purpose:'any'}]
-    };
-    const l=document.createElement('link'); l.rel='manifest';
-    l.href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(man));
-    document.head.appendChild(l);
-  }catch(e){}
-})();
+/* Service worker: shell offline + installazione come app vera (WebAPK su Android:
+   icona propria nel task manager, avvio standalone senza Chrome visibile) */
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.protocol==='http:')){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+}
 applyTheme();
 render();
 if(!S.profilo&&!S.obDone)openOnboarding();

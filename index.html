@@ -461,13 +461,24 @@ function applyIngMeta(src){
 
 /* Colazione fissa + voci fisse della spesa */
 const COLAZIONE={
-  id:'colazione', tipo:'colazione', titolo:'Colazione fissa del programma',
+  id:'colazione', tipo:'colazione', origine:'fissa',
+  titolo:'Colazione fissa del programma', short:'Colazione fissa',
+  kcal:450, resa:5,
+  porzione:'una porzione = la colazione di un giorno (la frutta e la frutta secca coprono anche gli spuntini)',
+  servizio:'Assembla al momento nella ciotola; yogurt e ricotta sempre ben freddi',
+  cong:'Non congelare: ingredienti freschi, si conservano in frigo',
+  giorni:'tutti i giorni, Lun–Ven',
   ingredienti:[
     {n:'Yogurt magro',q:750},
     {n:"Fiocchi d'avena",q:150},
     {n:'Ricotta vaccina magra',q:100,nota:'sull\'avena o con la frutta'},
     {n:'Frutta di stagione',q:1200},
     {n:'Mandorle o noci',q:100},
+  ],
+  preparazione:[
+    {m:'fresco',t:'Porziona la frutta del giorno e pesa la frutta secca'},
+    {m:'fresco',t:'Nella ciotola unisci yogurt, fiocchi d\'avena e ricotta'},
+    {m:'fresco',t:'Aggiungi la frutta e completa con mandorle o noci'},
   ]
 };
 const KCAL_COLAZ_SPUNTINI=450; // colazione + frutta/frutta secca della giornata (stima)
@@ -855,7 +866,7 @@ function sanitizeState(raw){
     out.piano[day][m]=(typeof v==='string'&&v.length<=40&&/^[A-Za-z0-9_-]+$/.test(v))?v:null;
   }));
   /* ricette personali: struttura completa e tipi puliti */
-  const ric=[], seen=new Set(RICETTE.map(r=>r.id));
+  const ric=[], seen=new Set(RICETTE.concat([COLAZIONE]).map(r=>r.id));
   if(Array.isArray(raw.ricettePers)){
     raw.ricettePers.slice(0,200).forEach(r=>{
       if(!isObj(r))return;
@@ -955,6 +966,8 @@ const save=()=>{try{localStorage.setItem(PKEY,JSON.stringify(S));STORAGE_ERR=fal
 const fattore=()=>Math.max(.5,Math.min(2,S.calorie/KCAL_BASE));
 const kcalAdapt=r=>Math.round(numOr(r.kcal,0)*fattore());
 const kcalColazione=()=>Math.round(KCAL_COLAZ_SPUNTINI*fattore());
+/* quantità giornaliere della colazione fissa (totali settimanali / resa 5, adattate all'obiettivo) */
+const colazQta=()=>COLAZIONE.ingredienti.map(i=>i.n.toLowerCase()+' ~'+Math.max(5,Math.round(i.q/COLAZIONE.resa*fattore()/5)*5)+' g').join(' · ');
 /* streak allenamenti: giorni consecutivi segnati (oggi può mancare) */
 function streakWo(){
   let n=0; const d=new Date();
@@ -1039,7 +1052,7 @@ function persistIngMeta(){
 }
 /* al caricamento: ripristina i metadati personali dallo stato già validato */
 applyIngMeta(S.ingMeta);
-function allRecipes(){return RICETTE.concat(S.ricettePers);}
+function allRecipes(){return [COLAZIONE].concat(RICETTE,S.ricettePers);}
 function byId(id){return allRecipes().find(r=>r.id===id);}
 function pool(tipo){return allRecipes().filter(r=>r.tipo===tipo);}
 
@@ -1233,7 +1246,7 @@ function renderOggi(){
       </div>
     </div>`:`
     <div class="sect-title">🥣 Colazione (fissa)</div>
-    <div class="card small" style="padding:10px 12px">Yogurt magro (~${Math.round(150*fattore()/5)*5} g) + fiocchi d'avena (~${Math.round(30*fattore()/5)*5} g) + frutta + frutta secca <span class="chip ok" style="margin-left:4px">~${kcalColazione()} kcal con gli spuntini</span></div>
+    <div class="card small" style="padding:10px 12px">${colazQta()} <span class="chip ok" style="margin-left:4px">~${kcalColazione()} kcal con gli spuntini</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${pastoCard(k,'pranzo')}${pastoCard(k,'cena')}</div>`;
 
   return `
@@ -1390,7 +1403,7 @@ function renderPiano(q){
   <div class="card">
     <h2>📅 Piano della settimana <span class="sub">tocca un pasto per cambiarlo</span></h2>
     <div style="margin-bottom:10px"><button class="chip ok" data-act="calPanel" style="border:none">🎯 Obiettivo: ~${S.calorie} kcal/giorno · porzioni ×${fattore().toFixed(2).replace('.',',')} ▾</button></div>
-    <div class="infobox" style="margin-bottom:10px">🥣 <b>Colazione fissa</b> (non si cambia): yogurt magro + avena + frutta + frutta secca · ~${kcalColazione()} kcal con gli spuntini</div>
+    <div class="infobox" style="margin-bottom:10px">🥣 <b>Colazione fissa</b> (non si cambia, tutti i giorni): ${colazQta()} · ~${kcalColazione()} kcal con gli spuntini</div>
     ${dayRows}
     <div class="btnrow">
       <button class="btn ghost" data-act="genera">🎲 Genera settimana varia</button>
@@ -1450,9 +1463,9 @@ function recGridHtml(filtro,q){
   if(!list.length)return '<p class="small muted" style="padding:8px 2px">Nessuna ricetta trovata.</p>';
   return list.map(r=>`
     <button class="recitem" data-act="openRic" data-id="${esc(r.id)}">
-      <span class="rico">${r.tipo==='pranzo'?'☀️':'🌙'}</span>
+      <span class="rico">${r.tipo==='colazione'?'🥣':r.tipo==='pranzo'?'☀️':'🌙'}</span>
       <span class="rt"><b>${esc(r.titolo)}</b>
-        <span>${r.tipo==='pranzo'?'Pranzo':'Cena'} · ~${r.kcal} kcal · ${r.resa} porz. · ${r.ingredienti.length} ingr.</span></span>
+        <span>${r.tipo==='colazione'?'Colazione':r.tipo==='pranzo'?'Pranzo':'Cena'} · ~${r.kcal} kcal · ${r.resa} porz. · ${r.ingredienti.length} ingr.</span></span>
       ${r.origine==='personale'?'<span class="chip">Tua</span>':''}
       <span class="arrow">›</span>
     </button>`).join('');
@@ -2069,11 +2082,11 @@ function pickListHtml(q){
 function openRic(id){
   const r=byId(id); if(!r)return;
   openSheet(`
-    <h3>${r.tipo==='pranzo'?'☀️':'🌙'} ${esc(r.titolo)}</h3>
+    <h3>${r.tipo==='colazione'?'🥣':r.tipo==='pranzo'?'☀️':'🌙'} ${esc(r.titolo)}</h3>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
       <span class="chip ok">~${kcalAdapt(r)} kcal/porzione (stima${S.calorie!==KCAL_BASE?' · std '+numOr(r.kcal,0):''})</span>
       <span class="chip">Resa: ${numOr(r.resa,1)} porzioni</span>
-      ${r.origine==='personale'?'<span class="chip">Ricetta tua</span>':'<span class="chip">Nuova</span>'}
+      ${r.origine==='personale'?'<span class="chip">Ricetta tua</span>':r.origine==='fissa'?'<span class="chip">Fissa</span>':'<span class="chip">Nuova</span>'}
     </div>
     ${r.giorni?`<p class="tiny muted" style="margin:2px 0">Nel piano standard:${esc(r.giorni)}</p>`:''}
     <hr class="th">

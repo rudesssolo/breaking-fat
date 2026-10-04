@@ -1,5 +1,5 @@
 /* Service worker: shell cache + network-first per le pagine (aggiornamenti immediati) */
-const CACHE = 'pft-shell-v1';
+const CACHE = 'pft-shell-v2';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.png', './icon-192.png', './icon-maskable.png'];
 
 self.addEventListener('install', (e) => {

@@ -7,3 +7,5 @@ __pycache__/
 preview*.html
 candidate-*.png
 test-old.html
+
+icongen.html

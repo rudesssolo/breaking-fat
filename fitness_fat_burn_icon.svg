@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#14432c"/>
+      <stop offset="50%" stop-color="#0a291a"/>
+      <stop offset="100%" stop-color="#04120a"/>
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#e62e00"/>
+      <stop offset="45%" stop-color="#ff6a00"/>
+      <stop offset="85%" stop-color="#ffc800"/>
+      <stop offset="100%" stop-color="#fff5aa"/>
+    </linearGradient>
+    <linearGradient id="innerFlameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#ff5500"/>
+      <stop offset="60%" stop-color="#ffaa00"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="fatGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="65%" stop-color="#f7f2e4"/>
+      <stop offset="100%" stop-color="#e2d6b5"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="fireGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feComponentTransfer in="blur" result="boost">
+        <feFuncA type="linear" slope="0.7"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="boost"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="115" ry="115" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="111" ry="111" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2.5"/>
+  <circle cx="256" cy="270" r="160" fill="#ff4500" opacity="0.18" filter="url(#fireGlow)"/>
+  <path d="M 256 75 C 285 130 365 190 365 295 C 365 370 318 415 256 415 C 194 415 147 370 147 295 C 147 190 227 130 256 75 Z" fill="url(#flameGrad)" filter="url(#fireGlow)"/>
+  <path d="M 225 150 C 175 190 155 250 180 305 C 188 250 220 205 235 170 Z" fill="#ffc800" opacity="0.85"/>
+  <path d="M 287 160 C 335 200 350 260 328 310 C 322 260 295 215 277 180 Z" fill="#ffaa00" opacity="0.85"/>
+  <path d="M 256 215 C 308 265 328 305 328 342 C 328 382 296 405 256 405 C 216 405 184 382 184 342 C 184 305 204 265 256 215 Z" fill="url(#fatGrad)" filter="url(#glow)"/>
+  <path d="M 215 295 C 203 318 198 338 198 355" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.65" fill="none"/>
+  <ellipse cx="228" cy="265" rx="7" ry="12" transform="rotate(-28 228 265)" fill="#ffffff" opacity="0.75"/>
+  <path d="M 256 195 C 282 240 300 275 300 310 C 300 338 280 356 256 356 C 232 356 212 338 212 310 C 212 275 230 240 256 195 Z" fill="url(#innerFlameGrad)"/>
+  <ellipse cx="256" cy="320" rx="22" ry="18" fill="#ffffff" opacity="0.95"/>
+  <circle cx="205" cy="135" r="4.5" fill="#ffe600"/>
+  <circle cx="308" cy="115" r="5" fill="#ffd000"/>
+  <circle cx="342" cy="175" r="3.5" fill="#ff7700"/>
+  <circle cx="168" cy="210" r="3" fill="#ff5500"/>
+  <circle cx="256" cy="55" r="4" fill="#ffffff"/>
+  <circle cx="280" cy="90" r="3" fill="#fff2a3"/>
+</svg>

@@ -9,6 +9,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Breaking Fat">
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Breaking Fat — Meal Prep & Movimento</title>
 <style>
 :root{
@@ -2830,8 +2832,7 @@ document.addEventListener('keydown',e=>{
     if(location.protocol!=='http:'&&location.protocol!=='https:')return;
     const c=document.createElement('canvas'); c.width=c.height=512;
     const x=c.getContext('2d'); if(!x)return;
-    x.fillStyle='#2e7d32';
-    const r=110; x.beginPath(); x.moveTo(r,0); x.arcTo(512,0,512,512,r); x.arcTo(512,512,0,512,r); x.arcTo(0,512,0,0,r); x.arcTo(0,0,512,0,r); x.closePath(); x.fill();
+    x.fillStyle='#2e7d32'; x.fillRect(0,0,512,512);
     x.font='300px serif'; x.textAlign='center'; x.textBaseline='middle';
     x.fillStyle='#fff'; x.fillText('🔥',256,276);
     const icon=c.toDataURL('image/png');

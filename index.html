@@ -873,7 +873,7 @@ const MOV={
 /* =============================== STATO =============================== */
 const PKEY='pft_stato_v1';
 const APP_VERSION=2; // versione formato stato/backup: unica fonte di verità
-const BUILD='261004.2'; // build dell'app: YYMMDD.revisione — aumenta la revisione a OGNI pubblicazione (più deploy nello stesso giorno)
+const BUILD='261004.3'; // build dell'app: YYMMDD.revisione — aumenta la revisione a OGNI pubblicazione (più deploy nello stesso giorno)
 const KCAL_BASE=1275; // riferimento del programma (1.250-1.300)
 const DEF=()=>({
   v:APP_VERSION,
@@ -1567,6 +1567,7 @@ function renderCucina(){
   </div>`;
 }
 let RIC_OPEN=false; // ricettario collassato di default; lo stato sopravvive ai re-render
+let ROUT_OPEN=false, TUT_OPEN=false; // micro-routine e tutorial (Gym) collassati di default
 let FILTRO_RIC='tutti';
 function recGridHtml(filtro,q){
   q=(q||'').toLowerCase().trim();
@@ -1739,8 +1740,8 @@ function renderMov(){
       <div class="st"><b>${ggPassi?Math.round(sumPassi/ggPassi).toLocaleString('it-IT'):'—'}</b><span>passi media sett.</span></div>
     </div>
   </div>
-  <div class="card">
-    <h2>🧘‍♀️ Le Micro-Routine a Corpo Libero <span class="sub">10 minuti · incl. stretching del giovedì</span></h2>
+  <details class="card ricdet" id="routineDet" ${ROUT_OPEN?'open':''}>
+    <summary><h2>🧘‍♀️ Le Micro-Routine a Corpo Libero <span class="sub">10 minuti · incl. stretching del giovedì</span></h2><span class="ricarrow" aria-hidden="true">▾</span></summary>
     ${['A','B','S'].map(rid=>{
       const r=MOV.routine[rid];
       return `<div style="border:1px solid var(--border);border-radius:16px;padding:12px;margin-bottom:10px">
@@ -1755,9 +1756,9 @@ function renderMov(){
         <button class="btn" style="width:100%;margin-top:10px" data-act="timer" data-r="${rid}">▶ Avvia con timer guidato</button>
       </div>`;
     }).join('')}
-  </div>
-  <div class="card">
-    <h2>📖 Tutorial esercizi <span class="sub">posizioni per chi parte da zero</span></h2>
+  </details>
+  <details class="card ricdet" id="tutDet" ${TUT_OPEN?'open':''}>
+    <summary><h2>📖 Tutorial esercizi <span class="sub">posizioni per chi parte da zero</span></h2><span class="ricarrow" aria-hidden="true">▾</span></summary>
     <div class="tutgrid">
       ${TUT_ORDER.map(ex=>`
         <button type="button" class="tutcard asbtn" data-act="tut" data-ex="${esc(ex)}">
@@ -1765,7 +1766,7 @@ function renderMov(){
           <b>${esc(ex)}</b>
         </button>`).join('')}
     </div>
-  </div>
+  </details>
   <div class="card">
     <h2>🔥 L'impatto sul tuo obiettivo</h2>
     <p class="small">${MOV.impatto}</p>
@@ -2985,7 +2986,12 @@ document.addEventListener('input',e=>{
   if(el.id==='pickSearch'){const l=$('#pickList'); if(l)l.innerHTML=pickListHtml(el.value);}
 });
 // lo stato aperto/chiuso del ricettario sopravvive ai re-render
-document.addEventListener('toggle',e=>{if(e.target&&e.target.id==='ricDet')RIC_OPEN=e.target.open;},true);
+document.addEventListener('toggle',e=>{
+  const t=e.target; if(!t)return;
+  if(t.id==='ricDet')RIC_OPEN=t.open;
+  else if(t.id==='routineDet')ROUT_OPEN=t.open;
+  else if(t.id==='tutDet')TUT_OPEN=t.open;
+},true);
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.dataset.act==='passi'){

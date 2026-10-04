@@ -873,7 +873,7 @@ const MOV={
 /* =============================== STATO =============================== */
 const PKEY='pft_stato_v1';
 const APP_VERSION=2; // versione formato stato/backup: unica fonte di verità
-const BUILD='261004.3'; // build dell'app: YYMMDD.revisione — aumenta la revisione a OGNI pubblicazione (più deploy nello stesso giorno)
+const BUILD='261004.4'; // build dell'app: YYMMDD.revisione — aumenta la revisione a OGNI pubblicazione (più deploy nello stesso giorno)
 const KCAL_BASE=1275; // riferimento del programma (1.250-1.300)
 const DEF=()=>({
   v:APP_VERSION,
@@ -2605,6 +2605,12 @@ async function requestWake(){
 }
 function releaseWake(){WANT_WL=false; try{WL&&WL.release();}catch(e){} WL=null;}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&TM)requestWake();});
+/* torna visibile dopo >10 min (es. PWA lasciata aperta o aperta offline): ri-verifica le novità */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')return;
+  const lastChk=+localStorage.getItem('pft_upd_check')||0;
+  if(Date.now()-lastChk>10*60e3)checkUpdate();
+});
 
 /* ============================ AZIONI ============================ */
 function doExportSpesa(){
@@ -3020,10 +3026,10 @@ function buildGt(a,b){
 async function checkUpdate(manual){
   try{
     if(location.protocol!=='http:'&&location.protocol!=='https:')return;
-    /* throttle: il self-check scarica l'HTML intero, non ripeterlo entro 6h (skip se invocato manualmente) */
+    /* throttle: il self-check scarica l'HTML intero, non ripeterlo entro 1h (skip se invocato manualmente) */
     if(!manual){
       const lastChk=+localStorage.getItem('pft_upd_check')||0;
-      if(Date.now()-lastChk<6*3600e3)return;
+      if(Date.now()-lastChk<60*60e3)return;
     }
     if(!manual&&$('#overlayRoot').firstChild)return; // non sovrapporre ad altri sheet (manuale: sostituisce le impostazioni)
     const base=location.href.split('#')[0].split('?')[0];
@@ -3056,7 +3062,15 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||location.protoco
 applyTheme();
 render();
 if(!S.profilo&&!S.obDone)openOnboarding();
-setTimeout(checkUpdate,2500); // check nuove versioni a avvio (throttle 6h)
+setTimeout(checkUpdate,2500); // check nuove versioni a avvio (throttle 1h)
+/* la navigazione è network-first: online l'utente riceve già l'ultima build al lancio,
+   quindi il prompt "nuova versione" non ha quasi mai motivo di comparire.
+   Rendiamo VISIBILE l'aggiornamento avvenuto: se questa build è più recente dell'ultima vista → toast */
+try{
+  const lastB=localStorage.getItem('pft_last_build');
+  if(lastB&&buildGt(BUILD,lastB))toast('🎉 App aggiornata alla build '+BUILD);
+  localStorage.setItem('pft_last_build',BUILD);
+}catch(e){}
 /* stato illeggibile all'avvio: avvisa e offri il download della copia in quarantena */
 if(window._corruptPayload){
   const b=$('#loadErr');

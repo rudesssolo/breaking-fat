@@ -43,7 +43,8 @@ html[data-theme="dark"]{
   html:not([data-theme]) .btn.subtle{color:var(--text)}
   html:not([data-theme]) .btn.danger{color:var(--warn)}
   html:not([data-theme]) .row.done .tick,html:not([data-theme]) .tick.on{color:#12160f}
-  html:not([data-theme]) .tbtn{color:#12160f}
+html:not([data-theme]) .tbtn{color:#12160f}
+  html:not([data-theme]) .tbtn.sec{color:var(--text)}
   html:not([data-theme]) .calwarn{background:#33291a; border-color:#5c4a22; color:#e8c37a}
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
@@ -96,7 +97,6 @@ main{padding:14px 14px 8px; display:flex; flex-direction:column; gap:14px}
 .chip.ok{background:var(--soft); color:var(--accent2)}
 .chip.warn{background:#fdecea; color:#c62828}
 html[data-theme="dark"] .chip.warn{background:#3a2422; color:#ef9a9a}
-.chip.ok{background:var(--soft); color:var(--accent2)}
 
 /* ---------- pulsanti ---------- */
 .btn{
@@ -260,6 +260,7 @@ input[type=checkbox].big{width:22px;height:22px; accent-color:var(--accent)}
   font-size:24px; cursor:pointer; display:flex;align-items:center;justify-content:center;
 }
 html[data-theme="dark"] .tbtn{color:#12160f}
+html[data-theme="dark"] .tbtn.sec{color:var(--text)}
 .tbtn.sec{background:var(--chip); color:var(--text); width:52px;height:52px;font-size:19px}
 
 /* ---------- toast ---------- */
@@ -268,7 +269,7 @@ html[data-theme="dark"] .tbtn{color:#12160f}
   background:var(--text); color:var(--bg); padding:11px 18px; border-radius:99px; font-size:13.5px; font-weight:600;
   opacity:0; pointer-events:none; transition:.25s; z-index:90; max-width:86vw; text-align:center;
 }
-#toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto}
 
 /* ---------- misc ---------- */
 .infobox{background:var(--soft); border:1px solid var(--soft2); border-radius:14px; padding:12px; font-size:13px}
@@ -342,7 +343,7 @@ html[data-theme="dark"] .calwarn{background:#33291a; border-color:#5c4a22; color
 
 <nav class="tabbar">
   <div class="wrap">
-    <button class="tabbtn on" data-act="tab" data-tab="oggi"><span class="ic">🏠</span>Oggi</button>
+    <button class="tabbtn on" data-act="tab" data-tab="oggi" aria-current="page"><span class="ic">🏠</span>Oggi</button>
     <button class="tabbtn" data-act="tab" data-tab="pasti"><span class="ic">🍱</span>Pasti</button>
     <button class="tabbtn" data-act="tab" data-tab="spesa"><span class="ic">🛒</span>Spesa</button>
     <button class="tabbtn" data-act="tab" data-tab="cucina"><span class="ic">🍳</span>Cucina</button>
@@ -382,19 +383,21 @@ function dateOfWeekDay(k){
   m.setDate(m.getDate()+idx); return m;
 }
 const fmtDateIT=d=>d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
-function toast(msg){const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+function toast(msg){window._undoFn=null; const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600);}
 /* toast con azione di annullamento (finestra ~6s) */
 function toastUndo(msg,fn){
   const t=$('#toast');
-  t.innerHTML=`${esc(msg)}<button class="btn small ghost asbtn" data-act="undo" style="margin-left:10px;min-height:28px;padding:2px 12px">Annulla</button>`;
+  t.innerHTML=`${esc(msg)}<button class="btn small ghost asbtn" data-act="undo" style="margin-left:10px;min-height:28px;padding:2px 12px;color:var(--bg);border-color:var(--bg)">Annulla</button>`;
   t.classList.add('show'); clearTimeout(t._h);
   window._undoFn=fn;
-  t._h=setTimeout(()=>{t.classList.remove('show'); window._undoFn=null;},6000);
+  t._h=setTimeout(()=>{t.classList.remove('show'); t.textContent=''; window._undoFn=null;},6000);
 }
 /* ---------- promemoria backup ---------- */
 const BKP_LAST='pft_last_backup', BKP_SNOOZE='pft_backup_snooze';
 function backupDue(){
   try{
+    /* solo se c'è qualcosa da salvare */
+    if(!(S.pesi&&S.pesi.length)&&!(S.ricettePers&&S.ricettePers.length)&&!(S.spesa&&Object.keys(S.spesa).length))return false;
     const last=+localStorage.getItem(BKP_LAST)||0, sn=+localStorage.getItem(BKP_SNOOZE)||0;
     if(Date.now()-sn<7*864e5)return false;
     return !last||Date.now()-last>7*864e5;
@@ -887,7 +890,8 @@ function sanitizeState(raw){
   out.piano=JSON.parse(JSON.stringify(PIANO_DEFAULT));
   if(isObj(raw.piano))DAYS.forEach(day=>['pranzo','cena'].forEach(m=>{
     const v=isObj(raw.piano[day])?raw.piano[day][m]:null;
-    out.piano[day][m]=(typeof v==='string'&&v.length<=40&&/^[A-Za-z0-9_-]+$/.test(v))?v:null;
+    /* id validi ma non la colazione fissa (resterebbe contata due volte in spesa e kcal) */
+    out.piano[day][m]=(typeof v==='string'&&v.length<=40&&v!=='colazione'&&/^[A-Za-z0-9_-]+$/.test(v))?v:null;
   }));
   /* ricette personali: struttura completa e tipi puliti */
   const ric=[], seen=new Set(RICETTE.concat([COLAZIONE]).map(r=>r.id));
@@ -1265,7 +1269,7 @@ function renderOggi(){
       <div class="infobox small" style="margin:8px 0">🎯 Obiettivo feriale ~${S.calorie} kcal · 🛟 tetto weekend <b>~${weekendMax()} kcal/giorno</b> · margine libero <b>+${Math.max(0,weekendMax()-S.calorie)} kcal</b>.<br>
       <span class="tiny muted">Il margine copre un pasto fuori senza annullare i progressi: nel weekend non si perde peso, ma non lo si recupera.</span></div>
       <div class="btnrow">
-        <button class="btn ghost" data-act="goPasti">Vai alla sessione e alle ricette →</button>
+        <button class="btn ghost" data-act="goPasti">Vai alla sessione batch →</button>
         <button class="btn subtle" data-act="calPanel">Vedi il tuo mantenimento</button>
       </div>
     </div>`:`
@@ -1600,7 +1604,7 @@ function openProfiloForm(skip){
       ${skip?`<button class="btn subtle" data-act="obSkip">Più tardi</button>`:`<button class="btn subtle" data-act="close">Annulla</button>`}
     </div>
     ${skip?'':'<p class="tiny muted" style="margin-top:8px">💡 Registra il peso di oggi dalla tab Profilo dopo il salvataggio.</p>'}
-  `);
+  `,'',true);
 }
 function openOnboarding(){
   openProfiloForm(true);
@@ -2074,9 +2078,9 @@ function closeOverlay(){
   const lf=window._lastFocus; window._lastFocus=null;
   if(lf&&lf.isConnected){try{lf.focus();}catch(e){}}
 }
-function openSheet(html,cls=''){
+function openSheet(html,cls='',form){
   $('#overlayRoot').innerHTML=`<div class="overlay" data-act="backdrop">
-    <div class="sheet ${cls}" data-stop role="dialog" aria-modal="true">
+    <div class="sheet ${cls}" data-stop ${form?'data-form':''} role="dialog" aria-modal="true">
       <div class="grip"></div><button type="button" class="xbtn asbtn" data-act="close" aria-label="Chiudi">✕</button>${html}
     </div></div>`;
   window._lastFocus=document.activeElement;
@@ -2121,7 +2125,7 @@ function openRic(id){
       <span class="chip">Resa: ${numOr(r.resa,1)} porzioni</span>
       ${r.origine==='personale'?'<span class="chip">Ricetta tua</span>':r.origine==='fissa'?'<span class="chip">Fissa</span>':'<span class="chip">Nuova</span>'}
     </div>
-    ${r.giorni?`<p class="tiny muted" style="margin:2px 0">Nel piano standard:${esc(r.giorni)}</p>`:''}
+    ${r.giorni?`<p class="tiny muted" style="margin:2px 0">Nel piano standard: ${esc(r.giorni)}</p>`:''}
     <hr class="th">
     <h3 style="font-size:13px">🧺 Ingredienti <span class="muted" style="font-weight:400">(totali per ${numOr(r.resa,1)} porzioni · programma standard)</span></h3>
     <ul class="small ing" style="padding-left:18px">
@@ -2176,7 +2180,7 @@ function openRicForm(id){
       <button class="btn" data-act="saveRic">💾 Salva ricetta</button>
       <button class="btn subtle" data-act="close">Annulla</button>
     </div>
-  `);
+  `,'',true);
 }
 function ingRowHtml(i,ix){
   const defCat = Number.isFinite(i.c) ? i.c : (i.n && ING_META[i.n] ? ING_META[i.n].c : CAT_DEF);
@@ -2584,7 +2588,6 @@ function doImportBackup(file){
         doExportBackup();
         S=nuovo; resetIngMeta(); applyIngMeta(nuovo.ingMeta);
         save(); applyTheme(); closeOverlay(); render();
-        try{localStorage.setItem(BKP_LAST,String(Date.now()));}catch(e){}
         toast('✅ Backup importato');
       });
     }catch(e){
@@ -2703,8 +2706,8 @@ document.addEventListener('click',e=>{
       break;}
     case 'undo':{
       const f=window._undoFn; window._undoFn=null;
-      clearTimeout($('#toast')._h); $('#toast').classList.remove('show');
-      if(f)f();
+      clearTimeout($('#toast')._h); $('#toast').classList.remove('show'); $('#toast').textContent='';
+      if(f){try{f();}catch(e){console.warn('undo',e);toast('⚠️ Annullamento non riuscito');}}
       break;}
     case 'backupSnooze':{try{localStorage.setItem(BKP_SNOOZE,String(Date.now()));}catch(e){} render();break;}
 
@@ -2740,7 +2743,7 @@ document.addEventListener('click',e=>{
       Object.keys(S.steps).forEach(k=>{if(k.indexOf(a.id+':')===0)delete S.steps[k];});
       DAYS.forEach(d=>['pranzo','cena'].forEach(m=>{if(S.piano[d][m]===a.id)S.piano[d][m]=PIANO_DEFAULT[d][m];}));
       save();closeOverlay();render();
-      toastUndo('🗑 '+esc(nome)+' eliminata',()=>{S.ricettePers=snap.rp;S.piano=snap.pl;S.steps=snap.st;S.ingMeta=snap.im;save();render();toast('↩︎ Ricetta ripristinata');});
+      toastUndo('🗑 '+nome+' eliminata',()=>{S.ricettePers=snap.rp;S.piano=snap.pl;S.steps=snap.st;S.ingMeta=snap.im;save();render();toast('↩︎ Ricetta ripristinata');});
       break;}
     case 'addIng':{
       const box=$('#fIng');
@@ -2818,8 +2821,9 @@ document.addEventListener('click',e=>{
     case 'reset':
       confirmSheet('Azzerare TUTTI i dati (piano, ricette personali, spunte, cronologia)? Potrai annullare per pochi secondi.',()=>{
         const snap={s:JSON.parse(JSON.stringify(S)),im:JSON.parse(JSON.stringify(ING_META))};
+        try{localStorage.removeItem(BKP_LAST);localStorage.removeItem(BKP_SNOOZE);localStorage.removeItem(PKEY+'_corrupt');}catch(e){}
         localStorage.removeItem(PKEY);S=DEF();resetIngMeta();save();applyTheme();closeOverlay();render();
-        toastUndo('🗑 Dati azzerati',()=>{S=snap.s;ING_META=snap.im;save();applyTheme();render();toast('↩︎ Dati ripristinati');});
+        toastUndo('🗑 Dati azzerati',()=>{S=snap.s;resetIngMeta();Object.assign(ING_META,snap.im);save();applyTheme();render();toast('↩︎ Dati ripristinati');});
       });break;
     case 'confOk':{const cb=window._confCb;window._confCb=null;closeOverlay();cb&&cb();break;}
     case 'passiPlus':{
@@ -2883,7 +2887,8 @@ document.addEventListener('change',e=>{
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
   const r=$('#overlayRoot'); if(!r||!r.firstChild)return;
-  if(r.querySelector('[data-stop]'))return;
+  if(TM)return; // timer allenamento: Esc non deve chiuderlo senza registrare
+  if(r.querySelector('[data-form]'))return; // form con input non salvati: chiudi solo con i pulsanti
   closeOverlay();
 });
 
@@ -2897,10 +2902,11 @@ async function checkUpdate(){
     const base=location.href.split('#')[0].split('?')[0];
     const r=await fetch(base+'?nc='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
-    const m=(await r.text()).match(/const BUILD='(\d{6})'/);
+    const m=(await r.text()).match(/const\s+BUILD\s*=\s*['"](\d{4,8})['"]/);
     if(!m)return;
     if(!(Number(m[1])>Number(BUILD)))return;
     if(localStorage.getItem(UPD_SKIP_KEY)===m[1])return; // già rifiutata per questa build
+    if($('#overlayRoot').firstChild)return; // ricontrollo dopo l'await: non sovrapporre a sheet/timer/form aperti nel frattempo
     UPD_REMOTE=m[1];
     openSheet(`
       <h3>🔄 Nuova versione disponibile</h3>

@@ -3,6 +3,7 @@
   "short_name": "Breaking Fat",
   "description": "Piano pasti settimanale, spesa, sessioni batch e movimento. I tuoi dati restano solo sul dispositivo.",
   "start_url": "./index.html",
+  "id": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

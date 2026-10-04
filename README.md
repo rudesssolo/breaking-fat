@@ -6,7 +6,7 @@ Tutti i dati restano **solo sul dispositivo** (localStorage); nessun account, ne
 
 ## 🌐 Usa l'app
 
-Apri GitHub Pages: **https://MARCOGEMELLO.github.io/breaking-fat/** *(aggiornato dopo il deploy)*
+Apri GitHub Pages: **https://rudesssolo.github.io/breaking-fat/**
 
 Su smartphone puoi installarla sulla schermata Home ("Aggiungi a schermata Home" su Android Chrome / "Aggiungi a Home" su iPhone Safari): si apre a tutto schermo come un'app.
 

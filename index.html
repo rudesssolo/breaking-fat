@@ -873,7 +873,7 @@ const MOV={
 /* =============================== STATO =============================== */
 const PKEY='pft_stato_v1';
 const APP_VERSION=2; // versione formato stato/backup: unica fonte di verità
-const BUILD='261004.4'; // build dell'app: YYMMDD.revisione — aumenta la revisione a OGNI pubblicazione (più deploy nello stesso giorno)
+const BUILD='261004.5'; // build dell'app: YYMMDD.revisione — aumenta la revisione a OGNI pubblicazione (più deploy nello stesso giorno)
 const KCAL_BASE=1275; // riferimento del programma (1.250-1.300)
 const DEF=()=>({
   v:APP_VERSION,
@@ -1568,6 +1568,7 @@ function renderCucina(){
 }
 let RIC_OPEN=false; // ricettario collassato di default; lo stato sopravvive ai re-render
 let ROUT_OPEN=false, TUT_OPEN=false; // micro-routine e tutorial (Gym) collassati di default
+let PRIN_OPEN=false; // anche il principio (Gym) collassato di default
 let FILTRO_RIC='tutti';
 function recGridHtml(filtro,q){
   q=(q||'').toLowerCase().trim();
@@ -1706,13 +1707,13 @@ function renderMov(){
     <h2>🤸 ${MOV.titolo}</h2>
     <p class="small muted" style="margin:0">${MOV.sotto}</p>
   </div>
-  <div class="card">
-    <h2>🎯 Il Principio: Costanza Senza Stress</h2>
+  <details class="card ricdet" id="principioDet" ${PRIN_OPEN?'open':''}>
+    <summary><h2>🎯 Il Principio: Costanza Senza Stress</h2><span class="ricarrow" aria-hidden="true">▾</span></summary>
     <p class="small">${MOV.principio}</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       ${MOV.pilastri.map(p=>`<div class="infobox"><b>${p.ico} ${esc(p.t)}</b><br><span class="tiny">${esc(p.d)}</span></div>`).join('')}
     </div>
-  </div>
+  </details>
   <div class="card">
     <h2>📅 Programma Settimanale Tipo <span class="sub">spunta i giorni completati</span></h2>
     ${MOV.settimana.map(r=>{
@@ -2997,6 +2998,7 @@ document.addEventListener('toggle',e=>{
   if(t.id==='ricDet')RIC_OPEN=t.open;
   else if(t.id==='routineDet')ROUT_OPEN=t.open;
   else if(t.id==='tutDet')TUT_OPEN=t.open;
+  else if(t.id==='principioDet')PRIN_OPEN=t.open;
 },true);
 document.addEventListener('change',e=>{
   const el=e.target;
